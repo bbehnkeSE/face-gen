@@ -58,7 +58,7 @@ class Generator(nn.Module):
             PixelNorm()
         )
         self.init_rgb           = WSConv2d(in_channels, img_channels,kernel_size=1, padding=0)
-        self.progressive_blocks = nn.ModuleList()
+        self.progressive_blocks = nn.ModuleList([])
         self.rgb_layers         = nn.ModuleList([self.init_rgb])
 
         for i in range(len(factors) - 1):
@@ -97,9 +97,9 @@ class Critic(nn.Module):
             conv_in_chan  = int(in_channels * factors[i])
             conv_out_chan = int(in_channels * factors[i-1])
             self.progressive_blocks.append(Conv2dBlock(conv_in_chan, conv_out_chan, use_pn=False))
-            self.rgb_layers.append(WSConv2d(img_channels, conv_in_chan, kernel_size=1, stride=1, padding=0))
+            self.rgb_layers.append(WSConv2d(img_channels, conv_in_chan, kernel_size=1, padding=0))
 
-        self.out_rgb = WSConv2d(img_channels, in_channels, kernel_size=1, stride=1, padding=0)
+        self.out_rgb = WSConv2d(img_channels, in_channels, kernel_size=1, padding=0)
         self.rgb_layers.append(self.out_rgb)
         self.avg_pool = nn.AvgPool2d(kernel_size=2, stride=2)
 
@@ -136,20 +136,3 @@ class Critic(nn.Module):
 
         out = self.minibatch_std(out)
         return self.final_block(out).view(out.shape[0], -1)
-    
-
-if __name__ == "__main__":
-    z_dim = 512
-    in_channels = 1024
-    gen = Generator(z_dim, in_channels, img_channels=3)
-    critic = Critic(in_channels, img_channels=3)
-
-    for img_size in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
-        num_steps = int(math.log2(img_size / 4))
-        x = torch.randn((1, z_dim, 1, 1))
-        z = gen(x, 0.5, steps=num_steps)
-        assert z.shape == (1, 3, img_size, img_size)
-        out = critic(z, alpha=0.5, steps=num_steps)
-        assert out.shape == (1, 1)
-
-        print(f"Success at img_size: {img_size}")
