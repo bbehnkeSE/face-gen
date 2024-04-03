@@ -161,3 +161,4 @@ cython_debug/
 
 data/
 first_gan/MNIST
+tests.py
